@@ -187,3 +187,16 @@ Released under the [MIT License](LICENSE).
 <div align="center">
 <sub>Built as a deep-dive into low-latency market data systems. ITCH 5.0 spec © Nasdaq, Inc.</sub>
 </div>
+
+## 👤 Author
+
+**Chandan Yadav**
+
+📧 [yadavchandan6103@gmail.com](mailto:yadavchandan6103@gmail.com)
+🔗 [GitHub](https://github.com/yadavchandan84) · [LinkedIn](https://www.linkedin.com/in/chandan-yadav-89aaa3253/)
+
+<div align="center">
+
+⭐ If you found this project useful, consider giving it a star.
+
+</div>
