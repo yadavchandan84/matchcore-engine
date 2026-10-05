@@ -1,0 +1,21 @@
+# clang-tidy configuration for MatchCore.
+#
+# We lean on the bugprone, performance, portability and modern-C++ checks that
+# matter most for a low-latency codebase. Noisy or opinionated checks that fight
+# the house style are disabled explicitly.
+Checks: >
+  bugprone-*,
+  performance-*,
+  portability-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -cppcoreguidelines-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-identifier-length
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/matchcore/.*'
+FormatStyle: file
