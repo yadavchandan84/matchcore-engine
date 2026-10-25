@@ -1,7 +1,11 @@
-# The matchcore library. In Phase 1 this holds only version/metadata plumbing;
-# later phases add the ITCH parser, order book, matching engine and pipeline.
+# The matchcore library: version metadata and the ITCH 5.0 parser. Later phases
+# add the order book, matching engine and pipeline.
 add_library(matchcore
-  matchcore.cpp)
+  matchcore.cpp
+  itch/parser.cpp
+  itch/synthetic.cpp
+  book/reference_book.cpp
+  book/order_book.cpp)
 
 add_library(matchcore::matchcore ALIAS matchcore)
 

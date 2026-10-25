@@ -41,6 +41,29 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  benchmarks:
+    name: benchmarks (build + short run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc g++ cmake
+
+      - name: Configure + build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DMATCHCORE_BUILD_BENCHMARKS=ON
+          cmake --build build --parallel
+
+      # Smoke-run only: shared CI runners are far too noisy for real numbers.
+      # The figures in BENCHMARKS.md come from tools/run_benchmarks.sh locally.
+      - name: Run
+        run: |
+          ./build/bin/matchcore_bench --benchmark_min_time=0.05s
+          ./build/bin/replay_bench --synthetic 500000 --runs 1
+
   sanitizers:
     name: sanitizer / ${{ matrix.san }}
     runs-on: ubuntu-latest
