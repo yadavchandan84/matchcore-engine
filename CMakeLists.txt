@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(matchcore
-  VERSION 0.1.0
+  VERSION 1.0.0
   DESCRIPTION "MatchCore: Low-Latency Limit Order Book & Matching Engine"
   LANGUAGES CXX)
 
@@ -32,6 +32,8 @@ target_compile_options(matchcore_warnings INTERFACE
 # Options
 # ---------------------------------------------------------------------------
 option(MATCHCORE_BUILD_TESTS "Build unit tests" ON)
+option(MATCHCORE_BUILD_TOOLS "Build command-line tools (itch_inspect, ...)" ON)
+option(MATCHCORE_BUILD_BENCHMARKS "Build Google Benchmark microbenchmarks" OFF)
 option(MATCHCORE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(MATCHCORE_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(MATCHCORE_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
@@ -51,15 +53,25 @@ if(MATCHCORE_ENABLE_TSAN)
 endif()
 
 # ---------------------------------------------------------------------------
-# Library target
+# Targets
 # ---------------------------------------------------------------------------
-add_subdirectory(src)
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
+# Testing must be enabled before any subdirectory registers tests (tools/
+# adds an end-to-end test of the CLI tools).
 if(MATCHCORE_BUILD_TESTS)
   include(CTest)
   enable_testing()
+endif()
+
+add_subdirectory(src)
+
+if(MATCHCORE_BUILD_TOOLS)
+  add_subdirectory(tools)
+endif()
+
+if(MATCHCORE_BUILD_BENCHMARKS)
+  add_subdirectory(bench)
+endif()
+
+if(MATCHCORE_BUILD_TESTS)
   add_subdirectory(tests)
 endif()

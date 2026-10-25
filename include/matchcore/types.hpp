@@ -1,7 +1,10 @@
 #ifndef MATCHCORE_TYPES_HPP
 #define MATCHCORE_TYPES_HPP
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 // Core domain types shared across the parser, order book and matching engine.
 //
@@ -54,6 +57,29 @@ class Price {
  private:
   std::uint32_t raw_{0};
 };
+
+/// Fixed-width, space-padded ASCII field (ITCH "Alpha" type).
+///
+/// ITCH alpha fields are left-justified and padded on the right with spaces.
+/// The raw bytes are stored as-is; `view()` trims the padding without copying.
+template <std::size_t N>
+struct FixedString {
+  std::array<char, N> chars{};
+
+  /// The field contents with trailing space padding removed.
+  [[nodiscard]] constexpr std::string_view view() const noexcept {
+    std::size_t len = N;
+    while (len > 0 && chars[len - 1] == ' ') {
+      --len;
+    }
+    return {chars.data(), len};
+  }
+
+  friend constexpr bool operator==(const FixedString&, const FixedString&) noexcept = default;
+};
+
+/// 8-character stock symbol (ITCH "Stock", Alpha 8).
+using Symbol = FixedString<8>;
 
 }  // namespace matchcore
 
