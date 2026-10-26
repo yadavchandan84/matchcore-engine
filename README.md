@@ -39,13 +39,15 @@ Methodology and the full tables are in [`BENCHMARKS.md`](BENCHMARKS.md).
 
 ## Why this project is interesting
 
-- **Real data, not toys.** It is validated against an actual multi-gigabyte
-  NASDAQ ITCH 5.0 session file, not hand-written fixtures alone.
-- **Zero-allocation hot path.** Orders and price levels come from pre-allocated
-  pools; no `new`/`delete` while messages are flowing.
-- **Correctness is provable.** A deliberately simple reference book is run
-  side-by-side with the fast book, and property/fuzz tests plus real-file replay
-  checkpoints confirm they always agree.
+- **The real wire format.** All 23 ITCH 5.0 message types are decoded from
+  the exact NASDAQ binary layout, with every message size checked at compile
+  time. The tools read real `.NASDAQ_ITCH50` files in chunks.
+- **Zero-allocation hot path.** Orders and price levels come from
+  preallocated pools, and no `new`/`delete` happens while messages are
+  flowing. A test counts allocations to prove it.
+- **Correctness is checked, not assumed.** A deliberately simple reference
+  book runs side by side with the fast book. A differential test compares
+  them after each of 100k random operations.
 - **Measured, never guessed.** Every performance number is pasted from real
   command output, with the exact machine spec recorded.
 
@@ -60,21 +62,48 @@ flowchart LR
     end
 
     subgraph parser [Parser thread]
-        P[Zero-copy decoder<br/>packed structs - big-endian<br/>no allocation]
+        P[Zero-copy decoder<br/>packed structs - big-endian<br/>static handler dispatch]
     end
 
     subgraph queue [Handoff]
-        R[(SPSC lock-free ring buffer<br/>cache-line padded<br/>acquire/release)]
+        R[(SPSC lock-free ring buffer<br/>32-byte BookEvents<br/>acquire/release)]
     end
 
-    subgraph engine [Engine thread]
-        B[Per-symbol order book<br/>flat price levels + intrusive FIFO]
-        M[Matching engine<br/>price-time priority]
-        O[Trade / execution reports]
+    subgraph engine [Book thread]
+        B[Per-symbol OrderBook<br/>flat price levels + intrusive FIFO<br/>pools + open-addressing id map]
     end
 
-    F --> P -->|frames| R --> B --> M --> O
+    subgraph match [Order entry]
+        N[New / cancel / modify requests]
+        M[MatchingEngine<br/>price-time priority]
+        O[Fills + execution reports]
+    end
+
+    F --> P -->|book events| R --> B
+    N --> M --> O
+    M -.->|uses its own instance of| B
 ```
+
+The same `OrderBook` serves two jobs. Replaying ITCH rebuilds the
+exchange's book from its own messages, single-threaded or through the
+two-thread pipeline. `MatchingEngine` makes its own matching decisions for
+orders submitted to it.
+
+---
+
+## Quick start
+
+On Windows, run these inside WSL2 Ubuntu (`wsl -d Ubuntu`):
+
+```bash
+git clone https://github.com/yadavchandan84/matchcore-engine.git
+cd matchcore-engine
+bash tools/verify_all.sh                    # all builds, sanitizers, demo, tools, benchmark
+~/mc-build/gcc-Release/bin/matchcore_demo   # order book ladder + matching walkthrough
+```
+
+`verify_all.sh` ends with `ALL CHECKS PASSED`. The first run downloads
+GoogleTest, so it needs internet access.
 
 **Key design choices (full rationale in [`docs/DESIGN.md`](docs/DESIGN.md)):**
 
@@ -211,11 +240,11 @@ matchcore-engine/
 ├── src/                 # Non-template implementation
 ├── tests/               # GoogleTest suites + zero-allocation proof (alloc_test)
 ├── bench/               # Google Benchmark microbenchmarks
-├── tools/               # itch_inspect, itch_gen, replay_bench, helper scripts
+├── tools/               # matchcore_demo, itch_inspect, itch_gen, replay_bench, scripts
 ├── docs/
 │   ├── DESIGN.md        # Design decisions and rationale
 │   └── specs/           # NASDAQ TotalView-ITCH 5.0 specification
-├── .github/workflows/   # CI: GCC + Clang × Debug + Release, plus sanitizers
+├── .github/workflows/   # CI: GCC + Clang × Debug + Release, sanitizers, benchmark smoke run
 ├── CMakePresets.json
 ├── BENCHMARKS.md        # Machine spec + measured results
 └── LICENSE
